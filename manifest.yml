@@ -9,7 +9,9 @@ modules:
   rovo:agent:
     - key: triage-agent
       name: Jira Triage Agent
-      description: Triages new Jira issues — classifies priority, finds duplicate issues, suggests an assignee from past work, and drafts a fix plan as a comment.
+      description: Triages new Jira issues — classifies priority, finds duplicate
+        issues, suggests an assignee from past work, and drafts a fix plan as a
+        comment.
       prompt: resource:triage-prompt;agent-prompt.md
       conversationStarters:
         - Triage this issue
@@ -46,7 +48,9 @@ modules:
       name: Get Jira issue
       function: get-issue-function
       actionVerb: GET
-      description: Retrieve a Jira issue by key — summary, description, status, priority, labels, assignee, reporter, created date, issue type and project.
+      description: Retrieve a Jira issue by key — summary, description, status,
+        priority, labels, assignee, reporter, created date, issue type and
+        project.
       inputs:
         issueKey:
           title: Issue key
@@ -58,7 +62,10 @@ modules:
       name: Search duplicate issues
       function: search-duplicates-function
       actionVerb: GET
-      description: Find issues in the same project that may duplicate the given issue. Extracts keywords from the issue, searches with JQL, and scores candidates by text overlap. Returns ranked candidates with scores — the agent judges which are true duplicates.
+      description: Find issues in the same project that may duplicate the given issue.
+        Extracts keywords from the issue, searches with JQL, and scores
+        candidates by text overlap. Returns ranked candidates with scores — the
+        agent judges which are true duplicates.
       inputs:
         issueKey:
           title: Issue key
@@ -75,7 +82,10 @@ modules:
       name: Assignee history
       function: assignee-history-function
       actionVerb: GET
-      description: Rank people who resolved similar issues before. Searches recently resolved issues in the project (same type and component when given) and ranks assignees by how many similar issues they resolved, weighted by recency. Returns the top candidates with evidence.
+      description: Rank people who resolved similar issues before. Searches recently
+        resolved issues in the project (same type and component when given) and
+        ranks assignees by how many similar issues they resolved, weighted by
+        recency. Returns the top candidates with evidence.
       inputs:
         projectKey:
           title: Project key
@@ -102,7 +112,9 @@ modules:
       name: Get project context
       function: get-project-context-function
       actionVerb: GET
-      description: Retrieve project info, the priorities available on this site (with their ids — call this before setting a priority), and open/resolved issue counts. Use it to calibrate a priority decision.
+      description: Retrieve project info, the priorities available on this site (with
+        their ids — call this before setting a priority), and open/resolved
+        issue counts. Use it to calibrate a priority decision.
       inputs:
         projectKey:
           title: Project key
@@ -114,7 +126,11 @@ modules:
       name: Post triage comment
       function: post-triage-comment-function
       actionVerb: CREATE
-      description: Post the triage report as a comment on the issue. Takes the report as Markdown text and converts it to Jira's document format. Also saves the triage to the app's storage so the issue panel can display it. Only call after the user confirms the triage in chat — never from an Automation-triggered run.
+      description: Post the triage report as a comment on the issue. Takes the report
+        as Markdown text and converts it to Jira's document format. Also saves
+        the triage to the app's storage so the issue panel can display it. Only
+        call after the user confirms the triage in chat — never from an
+        Automation-triggered run.
       inputs:
         issueKey:
           title: Issue key
@@ -125,28 +141,34 @@ modules:
           title: Triage report
           type: string
           required: true
-          description: The triage report as Markdown text (priority, reason, duplicates, suggested assignee, fix plan)
+          description: The triage report as Markdown text (priority, reason, duplicates,
+            suggested assignee, fix plan)
         priorityName:
           title: Priority name
           type: string
           required: false
-          description: The priority name from the triage report, e.g. High — shown in the issue panel
+          description: The priority name from the triage report, e.g. High — shown in the
+            issue panel
         assigneeName:
           title: Assignee name
           type: string
           required: false
-          description: The display name of the suggested assignee, e.g. Maya — shown in the issue panel
+          description: The display name of the suggested assignee, e.g. Maya — shown in
+            the issue panel
         duplicateKeys:
           title: Duplicate keys
           type: string
           required: false
-          description: Comma-separated keys of issues judged duplicates, e.g. DEMO-101, DEMO-118 — shown in the issue panel
+          description: Comma-separated keys of issues judged duplicates, e.g. DEMO-101,
+            DEMO-118 — shown in the issue panel
 
     - key: set-priority
       name: Set issue priority
       function: set-priority-function
       actionVerb: UPDATE
-      description: Set the priority of a Jira issue by priority id. Get the available priority ids from get-project-context first — ids vary per site. Only call after the user confirms the triage in chat.
+      description: Set the priority of a Jira issue by priority id. Get the available
+        priority ids from get-project-context first — ids vary per site. Only
+        call after the user confirms the triage in chat.
       inputs:
         issueKey:
           title: Issue key
@@ -163,7 +185,9 @@ modules:
       name: Set issue assignee
       function: set-assignee-function
       actionVerb: UPDATE
-      description: Assign a Jira issue to a person by accountId. Get the accountId from assignee-history first. Only call after the user confirms the triage in chat.
+      description: Assign a Jira issue to a person by accountId. Get the accountId
+        from assignee-history first. Only call after the user confirms the
+        triage in chat.
       inputs:
         issueKey:
           title: Issue key
@@ -217,6 +241,4 @@ permissions:
 app:
   runtime:
     name: nodejs22.x
-  # PLACEHOLDER — replaced by `forge create` / `forge register` once the
-  # Atlassian account exists. Never deploy with this value.
-  id: PLACEHOLDER-RUN-FORGE-CREATE
+  id: ari:cloud:ecosystem::app/b7d4d717-e338-4d4a-8083-29e86e4d07f6
