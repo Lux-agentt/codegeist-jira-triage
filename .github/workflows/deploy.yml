@@ -6,9 +6,12 @@
 # before keytar, so the secrets are the whole login. No secret value is ever
 # written to this file or the repo.
 #
-# First run: manifest.yml still carries the PLACEHOLDER app id, so the workflow
+# First run: the manifest's id line still reads PLACEHOLDER, so the workflow
 # runs `forge register` once and commits the real id back to main (with
 # [skip ci], so it does not re-trigger itself). Later runs skip registering.
+# NOTE: the check below greps the id LINE only — a bare grep for PLACEHOLDER
+# also matches the header comment in manifest.yml and re-registers the app
+# (run #7 did exactly that and created a second app id).
 #
 # On the GitHub-hosted runner, `forge` resolves via PATH after the global npm
 # install (the /usr/bin/forge absolute path is specific to the dev VM, where
@@ -53,12 +56,18 @@ jobs:
       - name: Install Forge CLI
         run: npm install -g @forge/cli@15.1.0 --ignore-scripts
 
+      - name: Install dependencies
+        # forge deploy bundles src/ and must resolve @forge/api and
+        # @forge/resolver from node_modules — without this step the
+        # bundler fails with "Module not found" (runs #6/#7, 19 Nov).
+        run: npm ci
+
       - name: Register app (first run only)
         env:
           FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
           FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
         run: |
-          if grep -q "PLACEHOLDER" manifest.yml; then
+          if grep -qE "^[[:space:]]*id:[[:space:]]*PLACEHOLDER" manifest.yml; then
             SPACE_ID=$(forge developer-spaces list --json | python3 -c "import json,sys; d=json.load(sys.stdin); a=d if isinstance(d,list) else d.get('spaces',d.get('developerSpaces',[])); print(a[0].get('id',a[0].get('spaceId','')) if a else '')")
             if [ -z "$SPACE_ID" ]; then
               echo "::error::No Developer Space found for this Atlassian account. Create one at https://developer.atlassian.com/console/myapps/ then re-run."
