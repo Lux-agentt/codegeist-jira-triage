@@ -1,6 +1,6 @@
 # Forge manifest — Jira Triage Agent (Codegeist 2026)
 #
-# STATUS: scaffold. The app id below is a PLACEHOLDER — run `forge create`
+# STATUS: scaffold. The app id below was filled in by `forge register` (run #7).
 # (after the Atlassian account + free Cloud Developer License exist) and the CLI
 # writes the real app id here. DO NOT deploy with the placeholder id.
 # See PLAN.md §3 (modules) and §9 (open unknowns).
