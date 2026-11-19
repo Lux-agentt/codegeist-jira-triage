@@ -82,7 +82,9 @@ modules:
       name: Assignee history
       function: fn-assignee-history
       actionVerb: GET
-      description: Rank people who resolved similar issues before. Searches recently resolved issues in the project (same type and component when given) and ranks assignees by similar issues resolved, weighted by recency.
+      description: Rank people who resolved similar issues before. Searches recently
+        resolved issues in the project (same type and component when given) and
+        ranks assignees by similar issues resolved, weighted by recency.
       inputs:
         projectKey:
           title: Project key
@@ -123,7 +125,10 @@ modules:
       name: Post triage comment
       function: fn-post-comment
       actionVerb: CREATE
-      description: Post the triage report as a comment on the issue. Takes the report as Markdown text and converts it to Jira's document format. Also saves the triage for the issue panel. Only call after the user confirms in chat — never from an Automation run.
+      description: Post the triage report as a comment on the issue. Takes the report
+        as Markdown text and converts it to Jira's document format. Also saves
+        the triage for the issue panel. Only call after the user confirms in
+        chat — never from an Automation run.
       inputs:
         issueKey:
           title: Issue key
@@ -236,4 +241,4 @@ permissions:
 app:
   runtime:
     name: nodejs22.x
-  id: ari:cloud:ecosystem::app/b7d4d717-e338-4d4a-8083-29e86e4d07f6
+  id: ari:cloud:ecosystem::app/52901bce-b037-4386-be98-54704d03b178
