@@ -27,6 +27,12 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Forge CLI asks for analytics consent interactively on first run and
+    # fails in non-TTY ("Prompts can not be meaningfully rendered") — run
+    # #1 failed on exactly this. Disable analytics + force non-interactive.
+    env:
+      FORGE_DISABLE_ANALYTICS: "1"
+      FORGE_NON_INTERACTIVE: "on"
     steps:
       - uses: actions/checkout@v4
 
