@@ -1,0 +1,77 @@
+# Deploy the Jira Triage Agent to the Atlassian dev site.
+#
+# Auth: FORGE_EMAIL + FORGE_API_TOKEN from repository secrets
+# (Settings > Secrets and variables > Actions). `forge login` does NOT work
+# on the dev VM (no keychain/keytar), and the Forge CLI reads these env vars
+# before keytar, so the secrets are the whole login. No secret value is ever
+# written to this file or the repo.
+#
+# First run: manifest.yml still carries the PLACEHOLDER app id, so the workflow
+# runs `forge register` once and commits the real id back to main (with
+# [skip ci], so it does not re-trigger itself). Later runs skip registering.
+#
+# On the GitHub-hosted runner, `forge` resolves via PATH after the global npm
+# install (the /usr/bin/forge absolute path is specific to the dev VM, where
+# bare `forge` is Foundry's binary — that collision does not exist here).
+
+name: Deploy Forge app
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Forge secrets
+        env:
+          FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
+          FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
+        run: |
+          if [ -z "$FORGE_EMAIL" ] || [ -z "$FORGE_API_TOKEN" ]; then
+            echo "::error::Missing FORGE_EMAIL and/or FORGE_API_TOKEN repository secrets. Add them at Settings > Secrets and variables > Actions (FORGE_EMAIL = Atlassian account email, FORGE_API_TOKEN = Atlassian API token)."
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Forge CLI
+        run: npm install -g @forge/cli@15.1.0 --ignore-scripts
+
+      - name: Register app (first run only)
+        env:
+          FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
+          FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
+        run: |
+          if grep -q "PLACEHOLDER" manifest.yml; then
+            forge register --personal -y
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git checkout main
+            git add manifest.yml
+            git commit -m "Register Forge app id [skip ci]"
+            git push origin main
+          else
+            echo "App id already registered, skipping."
+          fi
+
+      - name: Deploy
+        env:
+          FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
+          FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
+        run: forge deploy -e development --non-interactive
+
+      - name: Install on dev site
+        env:
+          FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
+          FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
+        run: forge install -s rizqi-akbarluxagent.atlassian.net -p Jira --confirm-scopes --non-interactive
