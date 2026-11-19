@@ -60,7 +60,7 @@ modules:
 
     - key: search-duplicates
       name: Search duplicate issues
-      function: search-duplicates-function
+      function: fn-search-duplicates
       actionVerb: GET
       description: Find issues in the same project that may duplicate the given issue.
         Extracts keywords from the issue, searches with JQL, and scores
@@ -80,12 +80,9 @@ modules:
 
     - key: assignee-history
       name: Assignee history
-      function: assignee-history-function
+      function: fn-assignee-history
       actionVerb: GET
-      description: Rank people who resolved similar issues before. Searches recently
-        resolved issues in the project (same type and component when given) and
-        ranks assignees by how many similar issues they resolved, weighted by
-        recency. Returns the top candidates with evidence.
+      description: Rank people who resolved similar issues before. Searches recently resolved issues in the project (same type and component when given) and ranks assignees by similar issues resolved, weighted by recency.
       inputs:
         projectKey:
           title: Project key
@@ -110,7 +107,7 @@ modules:
 
     - key: get-project-context
       name: Get project context
-      function: get-project-context-function
+      function: fn-project-context
       actionVerb: GET
       description: Retrieve project info, the priorities available on this site (with
         their ids — call this before setting a priority), and open/resolved
@@ -124,13 +121,9 @@ modules:
 
     - key: post-triage-comment
       name: Post triage comment
-      function: post-triage-comment-function
+      function: fn-post-comment
       actionVerb: CREATE
-      description: Post the triage report as a comment on the issue. Takes the report
-        as Markdown text and converts it to Jira's document format. Also saves
-        the triage to the app's storage so the issue panel can display it. Only
-        call after the user confirms the triage in chat — never from an
-        Automation-triggered run.
+      description: Post the triage report as a comment on the issue. Takes the report as Markdown text and converts it to Jira's document format. Also saves the triage for the issue panel. Only call after the user confirms in chat — never from an Automation run.
       inputs:
         issueKey:
           title: Issue key
@@ -207,24 +200,25 @@ modules:
         function: panel-resolver
       render: native
       title: Triage Agent
+      icon: https://developer.atlassian.com/platform/forge/images/icons/issue-panel-icon.svg
 
   function:
     - key: get-issue-function
-      handler: src/index.getIssue
-    - key: search-duplicates-function
-      handler: src/index.searchDuplicates
-    - key: assignee-history-function
-      handler: src/index.assigneeHistory
-    - key: get-project-context-function
-      handler: src/index.getProjectContext
-    - key: post-triage-comment-function
-      handler: src/index.postTriageComment
+      handler: index.getIssue
+    - key: fn-search-duplicates
+      handler: index.searchDuplicates
+    - key: fn-assignee-history
+      handler: index.assigneeHistory
+    - key: fn-project-context
+      handler: index.getProjectContext
+    - key: fn-post-comment
+      handler: index.postTriageComment
     - key: set-priority-function
-      handler: src/index.setPriority
+      handler: index.setPriority
     - key: set-assignee-function
-      handler: src/index.setAssignee
+      handler: index.setAssignee
     - key: panel-resolver
-      handler: src/index.handler
+      handler: index.handler
 
 resources:
   - key: main
@@ -237,6 +231,7 @@ permissions:
     - read:jira-work
     - read:jira-user
     - write:jira-work
+    - storage:app
 
 app:
   runtime:
