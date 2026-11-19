@@ -1,0 +1,132 @@
+# Provision a Forge demo development site and install the Jira Triage Agent on it.
+#
+# Why: the free Atlassian Cloud Developer License site
+# (rizqi-akbarluxagent.atlassian.net) does NOT include Rovo (PLAN.md §9 U1,
+# resolved 2026-11-20). The Forge demo site is the fix: 90 days, $0, no card,
+# enterprise editions of Jira / Confluence / Jira Service Management / Rovo
+# with realistic seeded data. Only one active demo site per developer.
+#
+# Auth: FORGE_EMAIL + FORGE_API_TOKEN from repository secrets (same as
+# deploy.yml). `forge login` does NOT work on the dev VM (no keychain/keytar),
+# and the Forge CLI reads these env vars before keytar, so the secrets are
+# the whole login. No secret value is ever written to this file or the repo.
+#
+# Trigger: workflow_dispatch ONLY — provisioning is a one-time action per
+# developer and must NOT run on every push to main (deploy.yml handles push).
+# Re-running is safe: `forge site provision` returns the existing active demo
+# site instead of provisioning another one.
+#
+# Caveats (from the Rovo spike + Forge docs):
+# - The demo-site pool can be temporarily full ("No sites are currently
+#   available"): this workflow retries 3x with 5-min waits, then fails with a
+#   clear message. Re-dispatch later; the request may still be completing in
+#   the background — re-running `forge site provision` displays the site.
+# - On CLI 14.2.0 `provision` printed a spurious "Status: FAILED" while the
+#   site was actually created. This workflow never trusts that string alone:
+#   after each attempt it re-runs `forge site provision` (retrieve mode) and
+#   only proceeds when a *.atlassian.net URL is found in the output.
+# - `forge install --demo-site` cannot be combined with `--site`. It installs
+#   to the latest active demo site (or offers to provision one interactively —
+#   in non-interactive mode that offer fails, which is why we provision first).
+#
+# On the GitHub-hosted runner, `forge` resolves via PATH after the global npm
+# install (the /usr/bin/forge absolute path is specific to the dev VM, where
+# bare `forge` is Foundry's binary — that collision does not exist here).
+
+name: Provision Forge demo site
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  provision-demo-site:
+    runs-on: ubuntu-latest
+    # Forge CLI asks for analytics consent interactively on first run and
+    # fails in non-TTY ("Prompts can not be meaningfully rendered") — run
+    # #1 of deploy.yml failed on exactly this. Disable analytics + force
+    # non-interactive.
+    env:
+      FORGE_DISABLE_ANALYTICS: "1"
+      FORGE_NON_INTERACTIVE: "on"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Forge secrets
+        env:
+          FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
+          FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
+        run: |
+          if [ -z "$FORGE_EMAIL" ] || [ -z "$FORGE_API_TOKEN" ]; then
+            echo "::error::Missing FORGE_EMAIL and/or FORGE_API_TOKEN repository secrets. Add them at Settings > Secrets and variables > Actions (FORGE_EMAIL = Atlassian account email, FORGE_API_TOKEN = Atlassian API token)."
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Forge CLI
+        run: npm install -g @forge/cli@15.1.0 --ignore-scripts
+
+      - name: Install dependencies
+        # forge deploy bundles src/ and must resolve @forge/api and
+        # @forge/resolver from node_modules — without this step the
+        # bundler fails with "Module not found" (deploy runs #6/#7, 19 Nov).
+        run: npm ci
+
+      - name: Provision demo site (with retries)
+        env:
+          FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
+          FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
+        run: |
+          DEMO_SITE=""
+          for attempt in 1 2 3; do
+            echo "=== Provision attempt $attempt/3 ==="
+            forge site provision 2>&1 | tee "provision-$attempt.log" || true
+            # Re-run in retrieve mode: displays the active site even if the
+            # first call printed a spurious failure, and even if provisioning
+            # is still completing in the background.
+            forge site provision 2>&1 | tee "retrieve-$attempt.log" || true
+            DEMO_SITE=$(grep -oE "[A-Za-z0-9-]+\.atlassian\.net" "retrieve-$attempt.log" "provision-$attempt.log" | sort -u | head -n 1 || true)
+            if [ -n "$DEMO_SITE" ]; then
+              echo "Demo site found: $DEMO_SITE"
+              echo "DEMO_SITE=$DEMO_SITE" >> "$GITHUB_ENV"
+              break
+            fi
+            echo "No demo site URL yet (attempt $attempt/3)."
+            if [ "$attempt" -lt 3 ]; then
+              echo "Waiting 5 minutes before retry (pool may be temporarily full)..."
+              sleep 300
+            fi
+          done
+          if [ -z "$DEMO_SITE" ]; then
+            echo "::error::Could not provision a demo site after 3 attempts. The demo-site pool may be temporarily full — re-run this workflow later. (The request may still be completing in the background; re-running 'forge site provision' displays the active site.)"
+            exit 1
+          fi
+
+      - name: Deploy
+        env:
+          FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
+          FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
+        run: forge deploy -e development --non-interactive
+
+      - name: Install on demo site
+        env:
+          FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
+          FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
+        run: |
+          echo "Installing on demo site: $DEMO_SITE"
+          forge install --demo-site -p Jira --environment development --confirm-scopes --non-interactive
+
+      - name: Summary
+        run: |
+          {
+            echo "## Forge demo site provisioned"
+            echo ""
+            echo "- **Demo site:** https://$DEMO_SITE"
+            echo "- **App:** Jira Triage Agent (development environment)"
+            echo "- **Next:** open the demo site, look for the Rovo Chat button / \"Ask Rovo\" in the top bar, and test the triage agent in Rovo chat + the Automation path."
+          } >> "$GITHUB_STEP_SUMMARY"
