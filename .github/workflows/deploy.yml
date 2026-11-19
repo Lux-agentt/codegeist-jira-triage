@@ -64,7 +64,7 @@ jobs:
               echo "::error::No Developer Space found for this Atlassian account. Create one at https://developer.atlassian.com/console/myapps/ then re-run."
               exit 1
             fi
-            forge register --personal -y -s "$SPACE_ID"
+            forge register jira-triage-agent --personal -y -s "$SPACE_ID"
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git checkout main
