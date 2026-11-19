@@ -1,6 +1,6 @@
 ---
 name: triage-playbook
-description: Step-by-step procedure for triaging a Jira issue: gather the issue and project context, search for duplicates, rank assignees from resolved-issue history, draft a structured triage report, and apply it only after the user confirms (or return the structured output block when invoked by an Automation rule). Use whenever a user asks to triage an issue, find duplicates, suggest an assignee, or draft a fix plan for a Jira issue.
+description: "Step-by-step procedure for triaging a Jira issue: gather the issue and project context, search for duplicates, rank assignees from resolved-issue history, draft a structured triage report, and apply it only after the user confirms (or return the structured output block when invoked by an Automation rule). Use whenever a user asks to triage an issue, find duplicates, suggest an assignee, or draft a fix plan for a Jira issue."
 allowed-tools: get-issue search-duplicates assignee-history get-project-context post-triage-comment set-priority set-assignee
 ---
 
