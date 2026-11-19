@@ -59,7 +59,12 @@ jobs:
           FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
         run: |
           if grep -q "PLACEHOLDER" manifest.yml; then
-            forge register --personal -y
+            SPACE_ID=$(forge developer-spaces list --json | python3 -c "import json,sys; d=json.load(sys.stdin); a=d if isinstance(d,list) else d.get('spaces',d.get('developerSpaces',[])); print(a[0].get('id',a[0].get('spaceId','')) if a else '')")
+            if [ -z "$SPACE_ID" ]; then
+              echo "::error::No Developer Space found for this Atlassian account. Create one at https://developer.atlassian.com/console/myapps/ then re-run."
+              exit 1
+            fi
+            forge register --personal -y -s "$SPACE_ID"
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git checkout main
