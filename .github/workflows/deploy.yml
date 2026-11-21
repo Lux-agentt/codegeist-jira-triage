@@ -94,4 +94,7 @@ jobs:
         env:
           FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
           FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
-        run: forge install -s rizqi-akbarluxagent.atlassian.net -p Jira --environment development --confirm-scopes --non-interactive
+        run: |
+          # Re-runs must upgrade the existing installation: plain `forge install`
+          # fails with "already installed" when the app is already on the site.
+          forge install -s rizqi-akbarluxagent.atlassian.net -p Jira --environment development --confirm-scopes --non-interactive --upgrade || forge install -s rizqi-akbarluxagent.atlassian.net -p Jira --environment development --confirm-scopes --non-interactive
