@@ -1,14 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import ForgeReconciler, { Text, SectionMessage, Heading, useProductContext } from '@forge/react';
-import { invoke } from '@forge/bridge';
+import ForgeReconciler, { Text, SectionMessage, Heading } from '@forge/react';
+import { invoke, view } from '@forge/bridge';
 
 const App = () => {
-  const { extension } = useProductContext();
-  const issueKey = extension && extension.issue ? extension.issue.key : null;
+  const [issueKey, setIssueKey] = useState(null);
+  const [contextLoaded, setContextLoaded] = useState(false);
   const [triage, setTriage] = useState(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
+    // useProductContext() returns undefined in this issue panel, and
+    // destructuring `extension` from it crashed the panel on mount before
+    // getTriage was ever called. Read the issue key from the documented
+    // Custom UI context API instead.
+    view
+      .getContext()
+      .then((ctx) => {
+        const key = ctx && ctx.extension && ctx.extension.issue ? ctx.extension.issue.key : null;
+        setIssueKey(key);
+        setContextLoaded(true);
+      })
+      .catch(() => setContextLoaded(true));
+  }, []);
+
+  useEffect(() => {
+    if (!contextLoaded) {
+      return;
+    }
     if (!issueKey) {
       setLoaded(true);
       return;
@@ -19,7 +37,7 @@ const App = () => {
         setLoaded(true);
       })
       .catch(() => setLoaded(true));
-  }, [issueKey]);
+  }, [contextLoaded, issueKey]);
 
   if (!loaded) {
     return <Text>Loading triage…</Text>;
